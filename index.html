@@ -9,6 +9,7 @@
     <body>
         <script src="js/three.js"></script>
         <script src="js/ammo.js"></script>
+        <script src="js/math.js"></script>
         <script>
             let dynamcisWorld, scene, camera, renderer;
             let bodies = [];
@@ -48,7 +49,7 @@
                 scene.background = new THREE.Color(0xcfcfcf);
 
                 camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 5000);
-                camera.position.set(40, 70, 40);
+                camera.position.set(50,50,50);
                 camera.lookAt(new THREE.Vector3(0, 0, 0));
 
                 //Add hemisphere light
@@ -146,7 +147,7 @@
                     let objThree = bodies[i];
                     let objAmmo = objThree.userData.dynamicsBody;
                     
-                    objAmmo.applyForce(new Ammo.btVector3(10*Math.cos(elapsedTime), 10, 10*Math.sin(elapsedTime)));
+                    objAmmo.applyForce(magneticFieldForce(elapsedTime, objAmmo));
 
                     let ms = objAmmo.getMotionState();
                     if (ms) {
@@ -157,6 +158,18 @@
                         objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
                     }
                 }
+            }
+            
+            function magneticVectorField(elapsedTime) {
+                return [10*Math.cos(elapsedTime), 10, 10*Math.sin(elapsedTime)];
+            }
+
+            function magneticFieldForce(elapsedTime, objAmmo) {
+                let v = objAmmo.getLinearVelocity();
+                let B = magneticVectorField(elapsedTime);
+                let F = math.cross([v.x(), v.y(), v.z()], B);
+                console.log(F);
+                return new Ammo.btVector3(F[0], F[1], F[2]);
             }
         </script>
     </body>
