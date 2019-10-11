@@ -1,0 +1,163 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Particle Accelerator</title>
+        <style>
+            body { margin: 0; }
+        </style>
+    </head>
+    <body>
+        <script src="js/three.js"></script>
+        <script src="js/ammo.js"></script>
+        <script>
+            let dynamcisWorld, scene, camera, renderer;
+            let bodies = [];
+
+            //variable declaration
+            //Ammojs Initialization
+            Ammo().then(start);
+            
+            function start() {
+                tmpTrans = new Ammo.btTransform();
+
+                setupPhysics();
+                setupGraphics();
+                generateParticle();
+                renderFrame();
+            }
+
+            function setupPhysics() {
+                let collisionConfiguration  = new Ammo.btDefaultCollisionConfiguration(),
+                    dispatcher              = new Ammo.btCollisionDispatcher(collisionConfiguration),
+                    overlappingPairCache    = new Ammo.btDbvtBroadphase(),
+                    solver                  = new Ammo.btSequentialImpulseConstraintSolver();
+                dynamicsWorld           = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+
+                dynamicsWorld.setGravity(new Ammo.btVector3(0, -10, 0));
+                
+                var groundShape = new Ammo.btBoxShape(new Ammo.btVector3(50, 50, 50)),
+                groundTransform = new Ammo.btTransform();
+
+                groundTransform.setIdentity();
+                groundTransform.setOrigin(new Ammo.btVector3(0, -20, 0));
+            }
+
+            function setupGraphics() {
+                clock = new THREE.Clock();
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xcfcfcf);
+
+                camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 5000);
+                camera.position.set(40, 70, 40);
+                camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+                //Add hemisphere light
+                let hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.1);
+                hemiLight.color.setHSL(0.6, 0.6, 0.6);
+                hemiLight.groundColor.setHSL(0.1, 1, 0.4);
+                hemiLight.position.set(0, 50, 0);
+                scene.add(hemiLight);
+
+                //Add directional light
+                let dirLight = new THREE.DirectionalLight(0xffffff, 1);
+                dirLight.color.setHSL(0.1, 1, 0.95);
+                dirLight.position.set(-1, 1.75, 1);
+                dirLight.position.multiplyScalar(100);
+                scene.add(dirLight);
+
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+                let d = 50;
+                dirLight.shadow.camera.left = -d;
+                dirLight.shadow.camera.right = d;
+                dirLight.shadow.camera.top = d;
+                dirLight.shadow.camera.bottom = -d;
+                dirLight.shadow.camera.far = 13500;
+
+                let axesHelper = new THREE.AxesHelper(500);
+                scene.add(axesHelper);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setClearColor(0xcfcfcf);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+
+                renderer.gammaInput = true;
+                renderer.gammaOutput = true;
+
+                renderer.shadowMap.enabled = true;
+            }
+
+            function renderFrame(){
+                let deltaTime   = clock.getDelta();
+                let elapsedTime = clock.getElapsedTime();
+                updatePhysics(deltaTime, elapsedTime);
+                renderer.render(scene, camera);
+                requestAnimationFrame(renderFrame);
+
+            }
+
+            function generateParticle() {
+                let pos = {x: 0, y: 20, z: 0};
+                let radius = 1;
+                let quat = {x: 0, y: 0, z: 0, w: 1};
+                let mass = 1;
+
+                //threeJS Section
+                let particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshPhongMaterial({color: 0xffffff}));
+
+                particle.position.set(pos.x, pos.y, pos.z);
+
+                particle.castShadow = true;
+                particle.receiveShadow = true;
+
+                scene.add(particle);
+
+                let colShape        = new Ammo.btSphereShape(1),
+                    startTransform  = new Ammo.btTransform();
+                
+                startTransform.setIdentity();
+
+                let isDynamic     = (mass !== 0),
+                    localInertia  = new Ammo.btVector3(0, 0, 0);
+                
+                if (isDynamic)
+                    colShape.calculateLocalInertia(mass,localInertia);
+
+                startTransform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+                startTransform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w))
+                
+                let myMotionState = new Ammo.btDefaultMotionState(startTransform),
+                    rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia),
+                    body          = new Ammo.btRigidBody(rbInfo);
+
+                dynamicsWorld.addRigidBody(body);
+                particle.userData.dynamicsBody = body;
+                bodies.push(particle);
+            }
+        
+            function updatePhysics(deltaTime, elapsedTime){
+                // Step world
+                dynamicsWorld.stepSimulation(deltaTime, 10);
+                // Update rigid bodies
+                for (let i = 0; i < bodies.length; i++) {
+                    let objThree = bodies[i];
+                    let objAmmo = objThree.userData.dynamicsBody;
+                    
+                    objAmmo.applyForce(new Ammo.btVector3(10*Math.cos(elapsedTime), 10, 10*Math.sin(elapsedTime)));
+
+                    let ms = objAmmo.getMotionState();
+                    if (ms) {
+                        ms.getWorldTransform(tmpTrans);
+                        let p = tmpTrans.getOrigin();
+                        let q = tmpTrans.getRotation();
+                        objThree.position.set(p.x(), p.y(), p.z());
+                        objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
+                    }
+                }
+            }
+        </script>
+    </body>
+</html>
