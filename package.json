@@ -1,0 +1,14 @@
+{
+    "name": "particle-accelerator-host",
+    "version": "1.0.0",
+    "main": "./server.js",
+    "dependencies": {
+        "express": "^4.17.1"
+    },
+    "author": "bcho04",
+    "license": "CC-BY-NC-ND-4.0",
+    "description": "Server for the main.js file and associated index.html",
+    "keywords": [
+        "particle-accelerator"
+    ]
+}
