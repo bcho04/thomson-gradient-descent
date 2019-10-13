@@ -1,5 +1,7 @@
 import { OrbitControls } from "./OrbitControls.js";
+import Stats from "./stats.module.js";
 var dynamicsWorld, scene, camera, renderer, controls;
+var stats;
 var clock;
 var bodies = [];
 var tmpTrans;
@@ -72,6 +74,9 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
+    stats = new Stats();
+    document.body.appendChild(stats.dom);
+
     renderer.gammaInput = true;
     renderer.gammaOutput = true;
 
@@ -87,7 +92,7 @@ function renderFrame(){
     updatePhysics(deltaTime, elapsedTime);
     renderer.render(scene, camera);
     requestAnimationFrame(renderFrame);
-
+    stats.update();
 }
 
 function onWindowResize() {
@@ -134,6 +139,18 @@ function generateParticle() {
 
     dynamicsWorld.addRigidBody(body);
     particle.userData.dynamicsBody = body;
+    particle.userData.positions = [[pos.x, pos.y, pos.z]];
+    particle.userData.trail = [];
+
+    // taken from three.js webgl/trails example
+    for (var i=0; i<2000; i++) {
+        var geometry = new THREE.SphereGeometry(0.15, 16, 16);
+        var material = new THREE.MeshBasicMaterial({color: 0x000000, vertexColors: THREE.VertexColors, depthTest: false});
+        var mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        particle.userData.trail.push(mesh);
+    }
+    console.log(particle.userData.trail[0]);
     bodies.push(particle);
 }
 
@@ -152,7 +169,6 @@ function updatePhysics(deltaTime, elapsedTime){
         console.log(KE);
         console.log(vel);
 
-
         let ms = objAmmo.getMotionState();
         if (ms) {
             ms.getWorldTransform(tmpTrans);
@@ -160,16 +176,29 @@ function updatePhysics(deltaTime, elapsedTime){
             let q = tmpTrans.getRotation();
             objThree.position.set(p.x(), p.y(), p.z());
             objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
+            objThree.userData.positions.push([p.x(),p.y(),p.z()]);
+            let tl = objThree.userData.trail.length;
+            let pl = objThree.userData.positions.length;
+            for (let i=0; i<Math.min(tl, pl); i++) {
+                let pos = objThree.userData.positions[pl-i-1];
+                objThree.userData.trail[i].position.set(pos[0], pos[1], pos[2]);
+            }
         }
     }
 }
 
 // Physics definitions
+/* UNIT SYSTEM:
+    mass: kg
+    velocity: m/s
+    ke: J
+    MVF: N
+*/
 
 function magneticVectorField(elapsedTime) {
-    return [5*Math.sin(elapsedTime), 
-            0, 
-            5*Math.cos(elapsedTime)
+    return [Math.sin(elapsedTime), 
+            1, 
+            Math.cos(elapsedTime)
         ];
 }
 
