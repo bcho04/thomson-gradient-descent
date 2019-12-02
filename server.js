@@ -7,7 +7,6 @@ var path = require('path');
 app.use('/js', express.static(path.join(__dirname, 'js')))
 
 app.get('/', function(req, res) {
-    console.log("get");
     res.sendFile(path.join(__dirname + '/index.html'));
 });
 

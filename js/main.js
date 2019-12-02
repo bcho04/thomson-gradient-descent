@@ -1,44 +1,43 @@
-import { OrbitControls } from "./OrbitControls.js";
-import Stats from "./stats.module.js";
-var dynamicsWorld, scene, camera, renderer, controls;
+import { OrbitControls } from "../lib/OrbitControls.js/index.js";
+import Stats from "../lib/stats.module.js/index.js";
+
+var clock, scene, camera, renderer, controls;
 var stats;
-var clock;
+var num_bodies = 10;
+var grad_updates_per_frame = 5;
 var bodies = [];
-var tmpTrans;
+var dt = 5 * Math.pow(10, -3);
+var current_frame = 0;
+var expression = "1/((-x1+x2)^2+(-y1+y2)^2+(-z1+z2)^2)^6-1/((-x1+x2)^2+(-y1+y2)^2+(-z1+z2)^2)^3+1/((-x1+x3)^2+(-y1+y3)^2+(-z1+z3)^2)^6-1/((-x1+x3)^2+(-y1+y3)^2+(-z1+z3)^2)^3+1/((-x2+x3)^2+(-y2+y3)^2+(-z2+z3)^2)^6-1/((-x2+x3)^2+(-y2+y3)^2+(-z2+z3)^2)^3+1/((-x1+x4)^2+(-y1+y4)^2+(-z1+z4)^2)^6-1/((-x1+x4)^2+(-y1+y4)^2+(-z1+z4)^2)^3+1/((-x2+x4)^2+(-y2+y4)^2+(-z2+z4)^2)^6-1/((-x2+x4)^2+(-y2+y4)^2+(-z2+z4)^2)^3+1/((-x3+x4)^2+(-y3+y4)^2+(-z3+z4)^2)^6-1/((-x3+x4)^2+(-y3+y4)^2+(-z3+z4)^2)^3+1/((-x1+x5)^2+(-y1+y5)^2+(-z1+z5)^2)^6-1/((-x1+x5)^2+(-y1+y5)^2+(-z1+z5)^2)^3+1/((-x2+x5)^2+(-y2+y5)^2+(-z2+z5)^2)^6-1/((-x2+x5)^2+(-y2+y5)^2+(-z2+z5)^2)^3+1/((-x3+x5)^2+(-y3+y5)^2+(-z3+z5)^2)^6-1/((-x3+x5)^2+(-y3+y5)^2+(-z3+z5)^2)^3+1/((-x4+x5)^2+(-y4+y5)^2+(-z4+z5)^2)^6-1/((-x4+x5)^2+(-y4+y5)^2+(-z4+z5)^2)^3+1/((-x1+x6)^2+(-y1+y6)^2+(-z1+z6)^2)^6-1/((-x1+x6)^2+(-y1+y6)^2+(-z1+z6)^2)^3+1/((-x2+x6)^2+(-y2+y6)^2+(-z2+z6)^2)^6-1/((-x2+x6)^2+(-y2+y6)^2+(-z2+z6)^2)^3+1/((-x3+x6)^2+(-y3+y6)^2+(-z3+z6)^2)^6-1/((-x3+x6)^2+(-y3+y6)^2+(-z3+z6)^2)^3+1/((-x4+x6)^2+(-y4+y6)^2+(-z4+z6)^2)^6-1/((-x4+x6)^2+(-y4+y6)^2+(-z4+z6)^2)^3+1/((-x5+x6)^2+(-y5+y6)^2+(-z5+z6)^2)^6-1/((-x5+x6)^2+(-y5+y6)^2+(-z5+z6)^2)^3+1/((-x1+x7)^2+(-y1+y7)^2+(-z1+z7)^2)^6-1/((-x1+x7)^2+(-y1+y7)^2+(-z1+z7)^2)^3+1/((-x2+x7)^2+(-y2+y7)^2+(-z2+z7)^2)^6-1/((-x2+x7)^2+(-y2+y7)^2+(-z2+z7)^2)^3+1/((-x3+x7)^2+(-y3+y7)^2+(-z3+z7)^2)^6-1/((-x3+x7)^2+(-y3+y7)^2+(-z3+z7)^2)^3+1/((-x4+x7)^2+(-y4+y7)^2+(-z4+z7)^2)^6-1/((-x4+x7)^2+(-y4+y7)^2+(-z4+z7)^2)^3+1/((-x5+x7)^2+(-y5+y7)^2+(-z5+z7)^2)^6-1/((-x5+x7)^2+(-y5+y7)^2+(-z5+z7)^2)^3+1/((-x6+x7)^2+(-y6+y7)^2+(-z6+z7)^2)^6-1/((-x6+x7)^2+(-y6+y7)^2+(-z6+z7)^2)^3+1/((-x1+x8)^2+(-y1+y8)^2+(-z1+z8)^2)^6-1/((-x1+x8)^2+(-y1+y8)^2+(-z1+z8)^2)^3+1/((-x2+x8)^2+(-y2+y8)^2+(-z2+z8)^2)^6-1/((-x2+x8)^2+(-y2+y8)^2+(-z2+z8)^2)^3+1/((-x3+x8)^2+(-y3+y8)^2+(-z3+z8)^2)^6-1/((-x3+x8)^2+(-y3+y8)^2+(-z3+z8)^2)^3+1/((-x4+x8)^2+(-y4+y8)^2+(-z4+z8)^2)^6-1/((-x4+x8)^2+(-y4+y8)^2+(-z4+z8)^2)^3+1/((-x5+x8)^2+(-y5+y8)^2+(-z5+z8)^2)^6-1/((-x5+x8)^2+(-y5+y8)^2+(-z5+z8)^2)^3+1/((-x6+x8)^2+(-y6+y8)^2+(-z6+z8)^2)^6-1/((-x6+x8)^2+(-y6+y8)^2+(-z6+z8)^2)^3+1/((-x7+x8)^2+(-y7+y8)^2+(-z7+z8)^2)^6-1/((-x7+x8)^2+(-y7+y8)^2+(-z7+z8)^2)^3+1/((-x1+x9)^2+(-y1+y9)^2+(-z1+z9)^2)^6-1/((-x1+x9)^2+(-y1+y9)^2+(-z1+z9)^2)^3+1/((-x2+x9)^2+(-y2+y9)^2+(-z2+z9)^2)^6-1/((-x2+x9)^2+(-y2+y9)^2+(-z2+z9)^2)^3+1/((-x3+x9)^2+(-y3+y9)^2+(-z3+z9)^2)^6-1/((-x3+x9)^2+(-y3+y9)^2+(-z3+z9)^2)^3+1/((-x4+x9)^2+(-y4+y9)^2+(-z4+z9)^2)^6-1/((-x4+x9)^2+(-y4+y9)^2+(-z4+z9)^2)^3+1/((-x5+x9)^2+(-y5+y9)^2+(-z5+z9)^2)^6-1/((-x5+x9)^2+(-y5+y9)^2+(-z5+z9)^2)^3+1/((-x6+x9)^2+(-y6+y9)^2+(-z6+z9)^2)^6-1/((-x6+x9)^2+(-y6+y9)^2+(-z6+z9)^2)^3+1/((-x7+x9)^2+(-y7+y9)^2+(-z7+z9)^2)^6-1/((-x7+x9)^2+(-y7+y9)^2+(-z7+z9)^2)^3+1/((-x8+x9)^2+(-y8+y9)^2+(-z8+z9)^2)^6-1/((-x8+x9)^2+(-y8+y9)^2+(-z8+z9)^2)^3+1/((-x1+x10)^2+(-y1+y10)^2+(-z1+z10)^2)^6-1/((-x1+x10)^2+(-y1+y10)^2+(-z1+z10)^2)^3+1/((-x2+x10)^2+(-y2+y10)^2+(-z2+z10)^2)^6-1/((-x2+x10)^2+(-y2+y10)^2+(-z2+z10)^2)^3+1/((-x3+x10)^2+(-y3+y10)^2+(-z3+z10)^2)^6-1/((-x3+x10)^2+(-y3+y10)^2+(-z3+z10)^2)^3+1/((-x4+x10)^2+(-y4+y10)^2+(-z4+z10)^2)^6-1/((-x4+x10)^2+(-y4+y10)^2+(-z4+z10)^2)^3+1/((-x5+x10)^2+(-y5+y10)^2+(-z5+z10)^2)^6-1/((-x5+x10)^2+(-y5+y10)^2+(-z5+z10)^2)^3+1/((-x6+x10)^2+(-y6+y10)^2+(-z6+z10)^2)^6-1/((-x6+x10)^2+(-y6+y10)^2+(-z6+z10)^2)^3+1/((-x7+x10)^2+(-y7+y10)^2+(-z7+z10)^2)^6-1/((-x7+x10)^2+(-y7+y10)^2+(-z7+z10)^2)^3+1/((-x8+x10)^2+(-y8+y10)^2+(-z8+z10)^2)^6-1/((-x8+x10)^2+(-y8+y10)^2+(-z8+z10)^2)^3+1/((-x9+x10)^2+(-y9+y10)^2+(-z9+z10)^2)^6-1/((-x9+x10)^2+(-y9+y10)^2+(-z9+z10)^2)^3";
+
+var cost = math.parse(expression);
+var derivatives = {};
+
+for(let i=1;i<num_bodies+1;i++) {
+    derivatives["x"+i.toString()] = math.derivative(cost, "x"+i.toString())
+    derivatives["y"+i.toString()] = math.derivative(cost, "y"+i.toString())
+    derivatives["z"+i.toString()] = math.derivative(cost, "z"+i.toString())
+}
 
 //variable declaration
-//Ammojs Initialization
-Ammo().then(start);
+//initialize.
+start();
 
 function start() {
-    tmpTrans = new Ammo.btTransform();
-
     init();
-    generateParticle();
+    for(var i=0;i<num_bodies;i++) {
+        generateParticle();
+    }
     renderFrame();
 }
 
 function init() {
-    let collisionConfiguration  = new Ammo.btDefaultCollisionConfiguration(),
-        dispatcher              = new Ammo.btCollisionDispatcher(collisionConfiguration),
-        overlappingPairCache    = new Ammo.btDbvtBroadphase(),
-        solver                  = new Ammo.btSequentialImpulseConstraintSolver();
-    dynamicsWorld           = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-
-    dynamicsWorld.setGravity(new Ammo.btVector3(0, 0, 0));
-    
-    var groundShape = new Ammo.btBoxShape(new Ammo.btVector3(50, 50, 50)),
-    groundTransform = new Ammo.btTransform();
-
-    groundTransform.setIdentity();
-    groundTransform.setOrigin(new Ammo.btVector3(0, -20, 0));
-
     clock = new THREE.Clock();
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xcfcfcf);
 
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 5000);
-    camera.position.set(50,50,50);
+    camera.position.set(3,3,3);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     //Add hemisphere light
@@ -87,9 +86,11 @@ function init() {
 }
 
 function renderFrame(){
-    let deltaTime   = clock.getDelta();
-    let elapsedTime = clock.getElapsedTime();
-    updatePhysics(deltaTime, elapsedTime);
+    current_frame += 1;
+    console.log("Frame: ", current_frame);
+    for(let i=0;i<grad_updates_per_frame;i++) {
+        updatePhysics();
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(renderFrame);
     stats.update();
@@ -102,10 +103,8 @@ function onWindowResize() {
 }
 
 function generateParticle() {
-    let pos = {x: 0, y: 20, z: 0};
-    let radius = 1;
-    let quat = {x: 0, y: 0, z: 0, w: 1};
-    let mass = 1;
+    let pos = {x: Math.random()*4 - 2, y: Math.random()*4 - 2, z: Math.random()*4 - 2};
+    let radius = 0.3;
 
     //threeJS Section
     let particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshPhongMaterial({color: 0xffffff}));
@@ -117,109 +116,43 @@ function generateParticle() {
 
     scene.add(particle);
 
-    let colShape        = new Ammo.btSphereShape(1),
-        startTransform  = new Ammo.btTransform();
-    
-    startTransform.setIdentity();
-
-    let isDynamic     = (mass !== 0),
-        localInertia  = new Ammo.btVector3(0, 0, 0);
-    
-    if (isDynamic)
-        colShape.calculateLocalInertia(mass,localInertia);
-
-    startTransform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
-    startTransform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w))
-    
-    let myMotionState = new Ammo.btDefaultMotionState(startTransform),
-        rbInfo        = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, colShape, localInertia),
-        body          = new Ammo.btRigidBody(rbInfo);
-
-    body.setLinearVelocity(new Ammo.btVector3(0,1,0));
-
-    dynamicsWorld.addRigidBody(body);
-    particle.userData.dynamicsBody = body;
-    particle.userData.positions = [[pos.x, pos.y, pos.z]];
-    particle.userData.trail = [];
-
-    // taken from three.js webgl/trails example
-    for (var i=0; i<2000; i++) {
-        var geometry = new THREE.SphereGeometry(0.15, 16, 16);
-        var material = new THREE.MeshBasicMaterial({color: 0x000000, vertexColors: THREE.VertexColors, depthTest: false});
-        var mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
-        particle.userData.trail.push(mesh);
-    }
-    console.log(particle.userData.trail[0]);
     bodies.push(particle);
 }
 
-function updatePhysics(deltaTime, elapsedTime){
+function updatePhysics(){
     // Step world
-    dynamicsWorld.stepSimulation(deltaTime, 10);
+    let particle_positions = {};
+    let particle_distances = {};
+    for (let i = 0; i < bodies.length; i++) {
+        particle_positions["x"+(i+1).toString()] = bodies[i].position.x;
+        particle_positions["y"+(i+1).toString()] = bodies[i].position.y;
+        particle_positions["z"+(i+1).toString()] = bodies[i].position.z;
+    }
+    for (let i = 0; i < bodies.length; i++) {
+        for (let j = i+1; j < bodies.length; j++) {
+            particle_distances[(i+1).toString()+"-"+(j+1).toString()] = Math.sqrt((bodies[j].position.x-bodies[i].position.x)**2 + (bodies[j].position.y-bodies[i].position.y)**2 + (bodies[j].position.z-bodies[i].position.z)**2);
+        }
+    }
+    console.log(particle_distances);
+    console.log(cost.evaluate(particle_positions));
     // Update rigid bodies
     for (let i = 0; i < bodies.length; i++) {
         let objThree = bodies[i];
-        let objAmmo = objThree.userData.dynamicsBody;
         
-        let magneticForceVector = magneticFieldForce(elapsedTime, objAmmo);
-        let KE = getKineticEnergy(objAmmo);
-        let vel = getVelocity(objAmmo);
-        objAmmo.applyForce(magneticForceVector);
-        console.log(KE);
-        console.log(vel);
+        let p_0 = [particle_positions["x"+(i+1).toString()], particle_positions["y"+(i+1).toString()], particle_positions["z"+(i+1).toString()]];
+        let grad = calculateGradient(i+1, particle_positions);
+        
+        let np = [p_0[0] - dt * grad[0], p_0[1] - dt * grad[1], p_0[2] - dt * grad[2]];
 
-        let ms = objAmmo.getMotionState();
-        if (ms) {
-            ms.getWorldTransform(tmpTrans);
-            let p = tmpTrans.getOrigin();
-            let q = tmpTrans.getRotation();
-            objThree.position.set(p.x(), p.y(), p.z());
-            objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
-            objThree.userData.positions.push([p.x(),p.y(),p.z()]);
-            let tl = objThree.userData.trail.length;
-            let pl = objThree.userData.positions.length;
-            for (let i=0; i<Math.min(tl, pl); i++) {
-                let pos = objThree.userData.positions[pl-i-1];
-                objThree.userData.trail[i].position.set(pos[0], pos[1], pos[2]);
-            }
-        }
+        objThree.position.set(np[0], np[1], np[2]);
     }
 }
 
-// Physics definitions
-/* UNIT SYSTEM:
-    mass: kg
-    velocity: m/s
-    ke: J
-    MVF: N
-*/
-
-function magneticVectorField(elapsedTime) {
-    return [Math.sin(elapsedTime), 
-            1, 
-            Math.cos(elapsedTime)
-        ];
+/* Calculates the value of the gradient at a point (x,y,z) */
+function calculateGradient(n, x) {
+    let dx = derivatives["x"+n.toString()].evaluate(x);
+    let dy = derivatives["y"+n.toString()].evaluate(x);
+    let dz = derivatives["z"+n.toString()].evaluate(x);
+    return [dx, dy, dz];
 }
-
-function magneticFieldForce(elapsedTime, objAmmo) {
-    let v = objAmmo.getLinearVelocity();
-    let B = magneticVectorField(elapsedTime);
-    let F = math.cross([v.x(), v.y(), v.z()], B);
-    console.log(F);
-    return new Ammo.btVector3(F[0], F[1], F[2]);
-}
-
-function getKineticEnergy(objAmmo) {
-    let m0 = 1.67 * Math.pow(10,-27);
-    let c = 3 * Math.pow(10,8);
-    let v = objAmmo.getLinearVelocity();
-    let v_mag = Math.sqrt(v.x()**2 + v.y()**2 + v.z()**2);
-    return (m0 * c**2) * (1/Math.sqrt(1-(v_mag**2)/(c**2)));
-}
-
-function getVelocity(objAmmo) {
-    let v = objAmmo.getLinearVelocity();
-    let v_mag = Math.sqrt(v.x()**2 + v.y()**2 + v.z()**2);
-    return v_mag;
-}
+    
