@@ -1,2 +1,2 @@
-# particle-accelerator
-Particle accelerator simulation for Module 2 of Multivariable Calculus.
+# thomson-gradient-descent
+Gradient descent for Module 4 Project 1 of Multivariable Calculus.
