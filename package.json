@@ -10,5 +10,8 @@
     "description": "Server for the main.js file and associated index.html",
     "keywords": [
         "particle-accelerator"
-    ]
+    ],
+    "scripts": {
+        "start": "node server.js"
+    }
 }
