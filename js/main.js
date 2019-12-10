@@ -135,7 +135,8 @@ function updatePhysics(){
         let theta = bodies[i].theta;
         let phi = bodies[i].phi;
 
-        bodies[i].position.set(Math.cos(theta)*Math.cos(phi), Math.cos(theta)*Math.sin(phi), Math.sin(theta));
+        bodies[i].position.set(Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta));
+        console.log(centralAngleDegrees(bodies[i].theta, bodies[i].phi, bodies[(i+1)%3].theta, bodies[(i+1)%3].phi));
     }
 }
 
@@ -145,5 +146,13 @@ function calculateGradient(n, x) {
     let dy = derivatives["y"+n.toString()].evaluate(x);
     let dz = derivatives["z"+n.toString()].evaluate(x);
     return [dx, dy, dz];
+}
+
+function centralAngleRadians(t1, p1, t2, p2) {
+    return Math.acos(Math.cos(t1)*Math.cos(p1)*Math.cos(t2)*Math.cos(p2) + Math.cos(t1)*Math.sin(p1)*Math.cos(t2)*Math.sin(p2) + Math.sin(t1)*Math.sin(t2));
+}
+
+function centralAngleDegrees(t1, p1, t2, p2) {
+    return centralAngleRadians(t1, p1, t2, p2) * (180/Math.PI);
 }
     
