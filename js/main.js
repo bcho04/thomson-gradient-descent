@@ -149,7 +149,7 @@ function calculateGradient(n, x) {
 }
 
 function centralAngleRadians(t1, p1, t2, p2) {
-    return Math.acos(Math.cos(t1)*Math.cos(p1)*Math.cos(t2)*Math.cos(p2) + Math.cos(t1)*Math.sin(p1)*Math.cos(t2)*Math.sin(p2) + Math.sin(t1)*Math.sin(t2));
+    return Math.acos(Math.cos(t1)*Math.cos(t2) + Math.sin(t1)*Math.sin(t2)*Math.cos(p1-p2));
 }
 
 function centralAngleDegrees(t1, p1, t2, p2) {
