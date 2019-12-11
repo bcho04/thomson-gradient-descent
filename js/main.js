@@ -1,15 +1,14 @@
-import { OrbitControls } from "../lib/OrbitControls.js/index.js";
-import Stats from "../lib/stats.module.js/index.js";
+import { OrbitControls } from "../lib/OrbitControls.js";
+import Stats from "../lib/stats.module.js";
 
 var clock, scene, camera, renderer, controls;
 var stats;
-var num_bodies = 10;
-
+var num_bodies = 3;
 var grad_updates_per_frame = 5;
 var bodies = [];
 var dt = 5 * Math.pow(10, -3);
 var current_frame = 0;
-var expression = "1/((-x1+x2)^2+(-y1+y2)^2+(-z1+z2)^2)^6-1/((-x1+x2)^2+(-y1+y2)^2+(-z1+z2)^2)^3+1/((-x1+x3)^2+(-y1+y3)^2+(-z1+z3)^2)^6-1/((-x1+x3)^2+(-y1+y3)^2+(-z1+z3)^2)^3+1/((-x2+x3)^2+(-y2+y3)^2+(-z2+z3)^2)^6-1/((-x2+x3)^2+(-y2+y3)^2+(-z2+z3)^2)^3+1/((-x1+x4)^2+(-y1+y4)^2+(-z1+z4)^2)^6-1/((-x1+x4)^2+(-y1+y4)^2+(-z1+z4)^2)^3+1/((-x2+x4)^2+(-y2+y4)^2+(-z2+z4)^2)^6-1/((-x2+x4)^2+(-y2+y4)^2+(-z2+z4)^2)^3+1/((-x3+x4)^2+(-y3+y4)^2+(-z3+z4)^2)^6-1/((-x3+x4)^2+(-y3+y4)^2+(-z3+z4)^2)^3+1/((-x1+x5)^2+(-y1+y5)^2+(-z1+z5)^2)^6-1/((-x1+x5)^2+(-y1+y5)^2+(-z1+z5)^2)^3+1/((-x2+x5)^2+(-y2+y5)^2+(-z2+z5)^2)^6-1/((-x2+x5)^2+(-y2+y5)^2+(-z2+z5)^2)^3+1/((-x3+x5)^2+(-y3+y5)^2+(-z3+z5)^2)^6-1/((-x3+x5)^2+(-y3+y5)^2+(-z3+z5)^2)^3+1/((-x4+x5)^2+(-y4+y5)^2+(-z4+z5)^2)^6-1/((-x4+x5)^2+(-y4+y5)^2+(-z4+z5)^2)^3+1/((-x1+x6)^2+(-y1+y6)^2+(-z1+z6)^2)^6-1/((-x1+x6)^2+(-y1+y6)^2+(-z1+z6)^2)^3+1/((-x2+x6)^2+(-y2+y6)^2+(-z2+z6)^2)^6-1/((-x2+x6)^2+(-y2+y6)^2+(-z2+z6)^2)^3+1/((-x3+x6)^2+(-y3+y6)^2+(-z3+z6)^2)^6-1/((-x3+x6)^2+(-y3+y6)^2+(-z3+z6)^2)^3+1/((-x4+x6)^2+(-y4+y6)^2+(-z4+z6)^2)^6-1/((-x4+x6)^2+(-y4+y6)^2+(-z4+z6)^2)^3+1/((-x5+x6)^2+(-y5+y6)^2+(-z5+z6)^2)^6-1/((-x5+x6)^2+(-y5+y6)^2+(-z5+z6)^2)^3+1/((-x1+x7)^2+(-y1+y7)^2+(-z1+z7)^2)^6-1/((-x1+x7)^2+(-y1+y7)^2+(-z1+z7)^2)^3+1/((-x2+x7)^2+(-y2+y7)^2+(-z2+z7)^2)^6-1/((-x2+x7)^2+(-y2+y7)^2+(-z2+z7)^2)^3+1/((-x3+x7)^2+(-y3+y7)^2+(-z3+z7)^2)^6-1/((-x3+x7)^2+(-y3+y7)^2+(-z3+z7)^2)^3+1/((-x4+x7)^2+(-y4+y7)^2+(-z4+z7)^2)^6-1/((-x4+x7)^2+(-y4+y7)^2+(-z4+z7)^2)^3+1/((-x5+x7)^2+(-y5+y7)^2+(-z5+z7)^2)^6-1/((-x5+x7)^2+(-y5+y7)^2+(-z5+z7)^2)^3+1/((-x6+x7)^2+(-y6+y7)^2+(-z6+z7)^2)^6-1/((-x6+x7)^2+(-y6+y7)^2+(-z6+z7)^2)^3+1/((-x1+x8)^2+(-y1+y8)^2+(-z1+z8)^2)^6-1/((-x1+x8)^2+(-y1+y8)^2+(-z1+z8)^2)^3+1/((-x2+x8)^2+(-y2+y8)^2+(-z2+z8)^2)^6-1/((-x2+x8)^2+(-y2+y8)^2+(-z2+z8)^2)^3+1/((-x3+x8)^2+(-y3+y8)^2+(-z3+z8)^2)^6-1/((-x3+x8)^2+(-y3+y8)^2+(-z3+z8)^2)^3+1/((-x4+x8)^2+(-y4+y8)^2+(-z4+z8)^2)^6-1/((-x4+x8)^2+(-y4+y8)^2+(-z4+z8)^2)^3+1/((-x5+x8)^2+(-y5+y8)^2+(-z5+z8)^2)^6-1/((-x5+x8)^2+(-y5+y8)^2+(-z5+z8)^2)^3+1/((-x6+x8)^2+(-y6+y8)^2+(-z6+z8)^2)^6-1/((-x6+x8)^2+(-y6+y8)^2+(-z6+z8)^2)^3+1/((-x7+x8)^2+(-y7+y8)^2+(-z7+z8)^2)^6-1/((-x7+x8)^2+(-y7+y8)^2+(-z7+z8)^2)^3+1/((-x1+x9)^2+(-y1+y9)^2+(-z1+z9)^2)^6-1/((-x1+x9)^2+(-y1+y9)^2+(-z1+z9)^2)^3+1/((-x2+x9)^2+(-y2+y9)^2+(-z2+z9)^2)^6-1/((-x2+x9)^2+(-y2+y9)^2+(-z2+z9)^2)^3+1/((-x3+x9)^2+(-y3+y9)^2+(-z3+z9)^2)^6-1/((-x3+x9)^2+(-y3+y9)^2+(-z3+z9)^2)^3+1/((-x4+x9)^2+(-y4+y9)^2+(-z4+z9)^2)^6-1/((-x4+x9)^2+(-y4+y9)^2+(-z4+z9)^2)^3+1/((-x5+x9)^2+(-y5+y9)^2+(-z5+z9)^2)^6-1/((-x5+x9)^2+(-y5+y9)^2+(-z5+z9)^2)^3+1/((-x6+x9)^2+(-y6+y9)^2+(-z6+z9)^2)^6-1/((-x6+x9)^2+(-y6+y9)^2+(-z6+z9)^2)^3+1/((-x7+x9)^2+(-y7+y9)^2+(-z7+z9)^2)^6-1/((-x7+x9)^2+(-y7+y9)^2+(-z7+z9)^2)^3+1/((-x8+x9)^2+(-y8+y9)^2+(-z8+z9)^2)^6-1/((-x8+x9)^2+(-y8+y9)^2+(-z8+z9)^2)^3+1/((-x1+x10)^2+(-y1+y10)^2+(-z1+z10)^2)^6-1/((-x1+x10)^2+(-y1+y10)^2+(-z1+z10)^2)^3+1/((-x2+x10)^2+(-y2+y10)^2+(-z2+z10)^2)^6-1/((-x2+x10)^2+(-y2+y10)^2+(-z2+z10)^2)^3+1/((-x3+x10)^2+(-y3+y10)^2+(-z3+z10)^2)^6-1/((-x3+x10)^2+(-y3+y10)^2+(-z3+z10)^2)^3+1/((-x4+x10)^2+(-y4+y10)^2+(-z4+z10)^2)^6-1/((-x4+x10)^2+(-y4+y10)^2+(-z4+z10)^2)^3+1/((-x5+x10)^2+(-y5+y10)^2+(-z5+z10)^2)^6-1/((-x5+x10)^2+(-y5+y10)^2+(-z5+z10)^2)^3+1/((-x6+x10)^2+(-y6+y10)^2+(-z6+z10)^2)^6-1/((-x6+x10)^2+(-y6+y10)^2+(-z6+z10)^2)^3+1/((-x7+x10)^2+(-y7+y10)^2+(-z7+z10)^2)^6-1/((-x7+x10)^2+(-y7+y10)^2+(-z7+z10)^2)^3+1/((-x8+x10)^2+(-y8+y10)^2+(-z8+z10)^2)^6-1/((-x8+x10)^2+(-y8+y10)^2+(-z8+z10)^2)^3+1/((-x9+x10)^2+(-y9+y10)^2+(-z9+z10)^2)^6-1/((-x9+x10)^2+(-y9+y10)^2+(-z9+z10)^2)^3";
+var expression = "x1+x2+x3+y1+y2+y3+z1+z2+z3"; // placeholder
 
 var cost = math.parse(expression);
 var derivatives = {};
@@ -87,6 +86,13 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
+    // Add translucent blue unit sphere
+    var sphereGeom =  new THREE.SphereGeometry( 1, 32, 32 );
+    var blueMaterial = new THREE.MeshBasicMaterial( { color: 0x0000ff, transparent: true, opacity: 0.1 } );
+    var sphere = new THREE.Mesh( sphereGeom, blueMaterial );
+    scene.add(sphere);
+    
+    
     stats = new Stats();
     document.body.appendChild(stats.dom);
 
@@ -118,7 +124,7 @@ function onWindowResize() {
 
 function generateParticle() {
     let pos = {x: Math.random()*4 - 2, y: Math.random()*4 - 2, z: Math.random()*4 - 2};
-    let radius = 0.3;
+    let radius = 0.1;
 
     //threeJS Section
     let particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshPhongMaterial({color: 0xffffff}));
@@ -127,6 +133,8 @@ function generateParticle() {
 
     particle.castShadow = true;
     particle.receiveShadow = true;
+    particle.theta = Math.random() * 180;
+    particle.phi = Math.random() * 360;
 
     scene.add(particle);
 
@@ -135,30 +143,13 @@ function generateParticle() {
 
 function updatePhysics(){
     // Step world
-    let particle_positions = {};
-    let particle_distances = {};
-    for (let i = 0; i < bodies.length; i++) {
-        particle_positions["x"+(i+1).toString()] = bodies[i].position.x;
-        particle_positions["y"+(i+1).toString()] = bodies[i].position.y;
-        particle_positions["z"+(i+1).toString()] = bodies[i].position.z;
-    }
-    for (let i = 0; i < bodies.length; i++) {
-        for (let j = i+1; j < bodies.length; j++) {
-            particle_distances[(i+1).toString()+"-"+(j+1).toString()] = Math.sqrt((bodies[j].position.x-bodies[i].position.x)**2 + (bodies[j].position.y-bodies[i].position.y)**2 + (bodies[j].position.z-bodies[i].position.z)**2);
-        }
-    }
-    console.log(particle_distances);
-    console.log(cost.evaluate(particle_positions));
     // Update rigid bodies
     for (let i = 0; i < bodies.length; i++) {
-        let objThree = bodies[i];
-        
-        let p_0 = [particle_positions["x"+(i+1).toString()], particle_positions["y"+(i+1).toString()], particle_positions["z"+(i+1).toString()]];
-        let grad = calculateGradient(i+1, particle_positions);
-        
-        let np = [p_0[0] - dt * grad[0], p_0[1] - dt * grad[1], p_0[2] - dt * grad[2]];
+        let theta = bodies[i].theta;
+        let phi = bodies[i].phi;
 
-        objThree.position.set(np[0], np[1], np[2]);
+        bodies[i].position.set(Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta));
+        console.log(centralAngleDegrees(bodies[i].theta, bodies[i].phi, bodies[(i+1)%3].theta, bodies[(i+1)%3].phi));
     }
 }
 
@@ -168,5 +159,13 @@ function calculateGradient(n, x) {
     let dy = derivatives["y"+n.toString()].evaluate(x);
     let dz = derivatives["z"+n.toString()].evaluate(x);
     return [dx, dy, dz];
+}
+
+function centralAngleRadians(t1, p1, t2, p2) {
+    return Math.acos(Math.cos(t1)*Math.cos(t2) + Math.sin(t1)*Math.sin(t2)*Math.cos(p1-p2));
+}
+
+function centralAngleDegrees(t1, p1, t2, p2) {
+    return centralAngleRadians(t1, p1, t2, p2) * (180/Math.PI);
 }
     
