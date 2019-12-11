@@ -4,6 +4,7 @@ import Stats from "../lib/stats.module.js/index.js";
 var clock, scene, camera, renderer, controls;
 var stats;
 var num_bodies = 10;
+
 var grad_updates_per_frame = 5;
 var bodies = [];
 var dt = 5 * Math.pow(10, -3);
@@ -12,6 +13,13 @@ var expression = "1/((-x1+x2)^2+(-y1+y2)^2+(-z1+z2)^2)^6-1/((-x1+x2)^2+(-y1+y2)^
 
 var cost = math.parse(expression);
 var derivatives = {};
+
+var points = {};
+var angles = {};
+
+for (let i=0;i<num_bodies;i++) {
+    points[i] = new SpherePoint();
+}
 
 for(let i=1;i<num_bodies+1;i++) {
     derivatives["x"+i.toString()] = math.derivative(cost, "x"+i.toString())
@@ -22,6 +30,12 @@ for(let i=1;i<num_bodies+1;i++) {
 //variable declaration
 //initialize.
 start();
+
+class SpherePoint {
+    constructor() {
+        this.phi = Math.random()
+    }
+} 
 
 function start() {
     init();
