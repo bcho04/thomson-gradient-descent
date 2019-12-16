@@ -6,21 +6,32 @@ var stats;
 var num_bodies = 3;
 var grad_updates_per_frame = 5;
 var bodies = [];
-var dt = 5 * Math.pow(10, -3);
 var current_frame = 0;
-var expression = "x1+x2+x3+y1+y2+y3+z1+z2+z3"; // placeholder
+var equal_threshold = 0.01;
+var oneAngleExpression = "acos(cos(t1) * cos(t2) + sin(t1) * sin(t2) * cos(p1 - p2))"; // placeholder
+var twoAngleExpression = "acos(cos(t1) * cos(ts) + sin(t1) * sin(ts) * cos(p1 - ps)) + acos(cos(ts) * cos(t2) + sin(t) * sin(t2) * cos(ps - p2))";
 
-var cost = math.parse(expression);
-var derivatives = {};
+var oneAngleCost = math.parse(oneAngleExpression);
+var twoAngleCost = math.parse(twoAngleExpression);
+
+var oneAngleDeriv = {
+    "t1": math.derivative(oneAngleCost, "t1"),
+    "t2": math.derivative(oneAngleCost, "t2"),
+    "p1": math.derivative(oneAngleCost, "p1"),
+    "p2": math.derivative(oneAngleCost, "p2")
+};
+
+var twoAngleDeriv = {
+    "t1": math.derivative(oneAngleCost, "t1"),
+    "t2": math.derivative(oneAngleCost, "t2"),
+    "p1": math.derivative(oneAngleCost, "p1"),
+    "p2": math.derivative(oneAngleCost, "p2"),
+    "ts": math.derivative(oneAngleCost, "ts"),
+    "ps": math.derivative(oneAngleCost, "ps")
+};
 
 var points = {};
-var angles = {};
-
-for(let i=1;i<num_bodies+1;i++) {
-    derivatives["x"+i.toString()] = math.derivative(cost, "x"+i.toString())
-    derivatives["y"+i.toString()] = math.derivative(cost, "y"+i.toString())
-    derivatives["z"+i.toString()] = math.derivative(cost, "z"+i.toString())
-}
+var angles = [];
 
 //variable declaration
 //initialize.
@@ -38,7 +49,7 @@ class SpherePoint {
         this.phi = phi;
         this.sphere = sphere;
     }
-
+    
     getCartesian() {
         return [Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta)];
     }
@@ -55,9 +66,13 @@ class Angle {
     constructor(point1, point2) {
         this.point1 = point1;
         this.point2 = point2;
+        this.angle = null;
     }
-    centralAngleRadians(t1, p1, t2, p2) {
-        return Math.acos(Math.cos(t1)*Math.cos(t2) + Math.sin(t1)*Math.sin(t2)*Math.cos(p1-p2));
+
+    centralAngleRadians() {
+        return Math.acos(Math.cos(points[this.point1].theta)*
+        Math.cos(points[this.point2].theta) + Math.sin(points[this.point1].theta)*Math.sin(points[this.point2].theta)*
+        Math.cos(points[this.point1].phi-points[this.point2].phi));
     }
 }
 
@@ -127,13 +142,22 @@ function init() {
 
     window.addEventListener('resize', onWindowResize, false);
     controls = new OrbitControls(camera, renderer.domElement);
+
+    for (let i=1;i<num_bodies+1;i++) {
+        points[i.toString()] = generateParticle();
+    }
+    for (let i=1;i<num_bodies+1;i++) {
+        for (let j=2; j<num_bodies;j++) {
+            angles.push(new Angle(i.toString(),j.toString()))
+        }
+    }
 }
 
 function renderFrame(){
     current_frame += 1;
     console.log("Frame: ", current_frame);
     for(let i=0;i<grad_updates_per_frame;i++) {
-        updatePhysics();
+        iterateUpdate();
     }
     renderer.render(scene, camera);
     requestAnimationFrame(renderFrame);
@@ -147,39 +171,93 @@ function onWindowResize() {
 }
 
 function generateParticle() {
-    let pos = {x: Math.random()*4 - 2, y: Math.random()*4 - 2, z: Math.random()*4 - 2};
     let radius = 0.1;
 
     //threeJS Section
     let particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshPhongMaterial({color: 0xffffff}));
+    let spherePoint = new SpherePoint(Math.random() * Math.PI, Math.random() * 2 * Math.PI, particle);  
 
-    particle.position.set(pos.x, pos.y, pos.z);
+    let pos = spherePoint.getCartesian();
+    spherePoint.sphere.position.set(pos[0], pos[1], pos[2]);
 
-    particle.castShadow = true;
-    particle.receiveShadow = true;
+    spherePoint.sphere.castShadow = true;
+    spherePoint.sphere.receiveShadow = true;
 
-    scene.add(particle);
+    scene.add(spherePoint.sphere);
 
-    return SpherePoint(Math.random() * Math.PI, Math.random() * 2 * Math.PI, particle);    
+    return spherePoint; 
 }
+function compareAngles(a,b) {
+    let comparison = 0;
+    if (a.centralAngleRadians() > b.centralAngleRadians()) {
+        comparison = 1;
+    } else if (a.centralAngleRadians() < b.centralAngleRadians()) {
+        comparison = -1;
+    }
+    return comparison;
+}
+/* Calculates the value of the gradient at a point (x,y,z) */
+// n is the index of the point that is being moved
+// doesn't return anything, implicitly updates the points{} and angles[]
+function iterateUpdate() {
+    // find min angle / angles
+    // pick random point if one angle, if two, pick to random
+    angleRad = angles.slice();
+    angleRad.sort(compareAngles);
 
-function updatePhysics(){
-    // Step world
-    // Update rigid bodies
-    for (let i = 0; i < bodies.length; i++) {
-        let theta = bodies[i].theta;
-        let phi = bodies[i].phi;
-
-        bodies[i].position.set(Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta));
-        console.log(centralAngleDegrees(bodies[i].theta, bodies[i].phi, bodies[(i+1)%3].theta, bodies[(i+1)%3].phi));
+    if (angleRad[1].centralAngleRadians() - angleRad[0].centralAngleRadians() < equal_threshold) {
+        twoAngleCalculate(angleRad[0], angleRad[1]);
+    } else {
+        oneAngleCalculate(angleRad[0]);
     }
 }
 
-/* Calculates the value of the gradient at a point (x,y,z) */
-function calculateGradient(n, x) {
-    let dx = derivatives["x"+n.toString()].evaluate(x);
-    let dy = derivatives["y"+n.toString()].evaluate(x);
-    let dz = derivatives["z"+n.toString()].evaluate(x);
-    return [dx, dy, dz];
+function twoAngleCalculate(angle1,angle2) {
+    // find shared point
+    if (angle1.point1 == angle2.point1) {
+        commonPoint = angle1.point1;
+        unique1 = angle1.point2;
+        unique2 = angle2.point2;
+    } else if (angle1.point2 == angle2.point2) {
+        commonPoint = angle2.point2;
+        unique1 = angle1.point1;
+        unique2 = angle2.point1;
+    } else if (angle1.point1 == angle2.point2) {
+        commonPoint = angle1.point1;
+        unique1 = angle1.point2;
+        unique2 = angle2.point1;
+    } else {
+        commonPoint = angle1.point2;
+        unique1 = angle1.point1;
+        unique2 = angle2.point2;
+    }
+    // take derivative
+    let tp = {
+        "t1": points[unique1].theta,
+        "p1": points[unique1].phi,
+        "t2": points[unique2].theta,
+        "p2": points[unique2].phi,
+        "ts": points[commonPoint].theta,
+        "ps": points[commonPoint].phi
+    };
+    points[unique1].theta += oneAngleDeriv["t1"].evaluate(tp);
+    points[unique1].phi += oneAngleDeriv["p1"].evaluate(tp);
+    points[unique2].theta += oneAngleDeriv["t2"].evaluate(tp);
+    points[unique2].phi += oneAngleDeriv["p2"].evaluate(tp);
+    points[commonPoint].theta += oneAngleDeriv["ts"].evaluate(tp);
+    points[commonPoint].phi += oneAngleDeriv["ps"].evaluate(tp);
 }
-    
+
+function oneAngleCalculate(angle) {
+    // we want to maximize oneAngleExpression
+    let tp = {
+        "t1": points[angle.point1].theta,
+        "p1": points[angle.point1].phi,
+        "t2": points[angle.point2].theta,
+        "p2": points[angle.point2].phi
+    };
+    points[angle.point1].theta += oneAngleDeriv["t1"].evaluate(tp);
+    points[angle.point1].phi += oneAngleDeriv["p1"].evaluate(tp);
+    points[angle.point2].theta += oneAngleDeriv["t2"].evaluate(tp);
+    points[angle.point2].phi += oneAngleDeriv["p2"].evaluate(tp);
+}
