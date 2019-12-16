@@ -16,10 +16,6 @@ var derivatives = {};
 var points = {};
 var angles = {};
 
-for (let i=0;i<num_bodies;i++) {
-    points[i] = new SpherePoint();
-}
-
 for(let i=1;i<num_bodies+1;i++) {
     derivatives["x"+i.toString()] = math.derivative(cost, "x"+i.toString())
     derivatives["y"+i.toString()] = math.derivative(cost, "y"+i.toString())
@@ -31,15 +27,44 @@ for(let i=1;i<num_bodies+1;i++) {
 start();
 
 class SpherePoint {
-    constructor() {
-        this.phi = Math.random()
+    constructor(sphere) {
+        this.phi = Math.random()*Math.PI*2;
+        this.theta = Math.random()*Math.PI; // Because phi allows us to access the other hemisphere of the sphere 
+        this.sphere = sphere; // Three.js sphere object (not relevant for math)
     }
-} 
+
+    constructor(theta, phi, sphere) {
+        this.theta = theta;
+        this.phi = phi;
+        this.sphere = sphere;
+    }
+
+    getCartesian() {
+        return [Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta)];
+    }
+    getDeg(radAngle) {
+        return radAngle/Math.PI*180;
+    }
+    setPosition(theta, phi) {
+        this.theta = theta;
+        this.phi = phi;
+    }
+}
+
+class Angle {
+    constructor(point1, point2) {
+        this.point1 = point1;
+        this.point2 = point2;
+    }
+    centralAngleRadians(t1, p1, t2, p2) {
+        return Math.acos(Math.cos(t1)*Math.cos(t2) + Math.sin(t1)*Math.sin(t2)*Math.cos(p1-p2));
+    }
+}
 
 function start() {
     init();
     for(var i=0;i<num_bodies;i++) {
-        generateParticle();
+        points[i] = generateParticle();
     }
     renderFrame();
 }
@@ -90,8 +115,7 @@ function init() {
     var sphereGeom =  new THREE.SphereGeometry( 1, 32, 32 );
     var blueMaterial = new THREE.MeshBasicMaterial( { color: 0x0000ff, transparent: true, opacity: 0.1 } );
     var sphere = new THREE.Mesh( sphereGeom, blueMaterial );
-    scene.add(sphere);
-    
+    scene.add(sphere);  
     
     stats = new Stats();
     document.body.appendChild(stats.dom);
@@ -133,12 +157,10 @@ function generateParticle() {
 
     particle.castShadow = true;
     particle.receiveShadow = true;
-    particle.theta = Math.random() * 180;
-    particle.phi = Math.random() * 360;
 
     scene.add(particle);
 
-    bodies.push(particle);
+    return SpherePoint(Math.random() * Math.PI, Math.random() * 2 * Math.PI, particle);    
 }
 
 function updatePhysics(){
@@ -159,13 +181,5 @@ function calculateGradient(n, x) {
     let dy = derivatives["y"+n.toString()].evaluate(x);
     let dz = derivatives["z"+n.toString()].evaluate(x);
     return [dx, dy, dz];
-}
-
-function centralAngleRadians(t1, p1, t2, p2) {
-    return Math.acos(Math.cos(t1)*Math.cos(t2) + Math.sin(t1)*Math.sin(t2)*Math.cos(p1-p2));
-}
-
-function centralAngleDegrees(t1, p1, t2, p2) {
-    return centralAngleRadians(t1, p1, t2, p2) * (180/Math.PI);
 }
     
