@@ -11,7 +11,7 @@ var dt = 5 * Math.pow(10, -3);
 var current_frame = 0;
 var equal_threshold = 0.01;
 var oneAngleExpression = "acos(cos(t1) * cos(t2) + sin(t1) * sin(t2) * cos(p1 - p2))"; // placeholder
-var twoAngleExpression = "acos(cos(t1) * cos(ts) + sin(t1) * sin(ts) * cos(p1 - ps)) + acos(cos(ts) * cos(t2) + sin(t) * sin(t2) * cos(ps - p2))";
+var twoAngleExpression = "acos(cos(t1) * cos(ts) + sin(t1) * sin(ts) * cos(p1 - ps)) + acos(cos(ts) * cos(t2) + sin(ts) * sin(t2) * cos(ps - p2))";
 
 var oneAngleCost = math.parse(oneAngleExpression);
 var twoAngleCost = math.parse(twoAngleExpression);
@@ -120,6 +120,9 @@ function renderFrame(){
     for(let i=0;i<grad_updates_per_frame;i++) {
         iterateUpdate();
     }
+    Object.keys(angles).forEach((angle) => {
+        console.log(angles[angle].centralAngleRadians(points));
+    })
     renderer.render(scene, camera);
     requestAnimationFrame(renderFrame);
     stats.update();
