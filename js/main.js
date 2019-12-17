@@ -1,11 +1,13 @@
 import { OrbitControls } from "../lib/OrbitControls.js";
 import Stats from "../lib/stats.module.js";
+import Angle from "./Angle.js";
+import SpherePoint from "./SpherePoint.js";
 
 var clock, scene, camera, renderer, controls;
 var stats;
 var num_bodies = 3;
-var grad_updates_per_frame = 5;
-var bodies = [];
+var grad_updates_per_frame = 1;
+var dt = 5 * Math.pow(10, -3);
 var current_frame = 0;
 var equal_threshold = 0.01;
 var oneAngleExpression = "acos(cos(t1) * cos(t2) + sin(t1) * sin(t2) * cos(p1 - p2))"; // placeholder
@@ -22,12 +24,12 @@ var oneAngleDeriv = {
 };
 
 var twoAngleDeriv = {
-    "t1": math.derivative(oneAngleCost, "t1"),
-    "t2": math.derivative(oneAngleCost, "t2"),
-    "p1": math.derivative(oneAngleCost, "p1"),
-    "p2": math.derivative(oneAngleCost, "p2"),
-    "ts": math.derivative(oneAngleCost, "ts"),
-    "ps": math.derivative(oneAngleCost, "ps")
+    "t1": math.derivative(twoAngleCost, "t1"),
+    "t2": math.derivative(twoAngleCost, "t2"),
+    "p1": math.derivative(twoAngleCost, "p1"),
+    "p2": math.derivative(twoAngleCost, "p2"),
+    "ts": math.derivative(twoAngleCost, "ts"),
+    "ps": math.derivative(twoAngleCost, "ps")
 };
 
 var points = {};
@@ -37,50 +39,8 @@ var angles = [];
 //initialize.
 start();
 
-class SpherePoint {
-    constructor(sphere) {
-        this.phi = Math.random()*Math.PI*2;
-        this.theta = Math.random()*Math.PI; // Because phi allows us to access the other hemisphere of the sphere 
-        this.sphere = sphere; // Three.js sphere object (not relevant for math)
-    }
-
-    constructor(theta, phi, sphere) {
-        this.theta = theta;
-        this.phi = phi;
-        this.sphere = sphere;
-    }
-    
-    getCartesian() {
-        return [Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta)];
-    }
-    getDeg(radAngle) {
-        return radAngle/Math.PI*180;
-    }
-    setPosition(theta, phi) {
-        this.theta = theta;
-        this.phi = phi;
-    }
-}
-
-class Angle {
-    constructor(point1, point2) {
-        this.point1 = point1;
-        this.point2 = point2;
-        this.angle = null;
-    }
-
-    centralAngleRadians() {
-        return Math.acos(Math.cos(points[this.point1].theta)*
-        Math.cos(points[this.point2].theta) + Math.sin(points[this.point1].theta)*Math.sin(points[this.point2].theta)*
-        Math.cos(points[this.point1].phi-points[this.point2].phi));
-    }
-}
-
 function start() {
     init();
-    for(var i=0;i<num_bodies;i++) {
-        points[i] = generateParticle();
-    }
     renderFrame();
 }
 
@@ -143,11 +103,12 @@ function init() {
     window.addEventListener('resize', onWindowResize, false);
     controls = new OrbitControls(camera, renderer.domElement);
 
-    for (let i=1;i<num_bodies+1;i++) {
+    for (let i=1;i<=num_bodies;i++) {
         points[i.toString()] = generateParticle();
     }
-    for (let i=1;i<num_bodies+1;i++) {
-        for (let j=2; j<num_bodies;j++) {
+
+    for (let i=1;i<=num_bodies;i++) {
+        for (let j=i+1;j<=num_bodies;j++) {
             angles.push(new Angle(i.toString(),j.toString()))
         }
     }
@@ -175,23 +136,24 @@ function generateParticle() {
 
     //threeJS Section
     let particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshPhongMaterial({color: 0xffffff}));
-    let spherePoint = new SpherePoint(Math.random() * Math.PI, Math.random() * 2 * Math.PI, particle);  
+    let sp = new SpherePoint(particle);  
 
-    let pos = spherePoint.getCartesian();
-    spherePoint.sphere.position.set(pos[0], pos[1], pos[2]);
+    let pos = sp.getCartesian();
+    sp.sphere.position.set(pos[0], pos[1], pos[2]);
 
-    spherePoint.sphere.castShadow = true;
-    spherePoint.sphere.receiveShadow = true;
+    sp.sphere.castShadow = true;
+    sp.sphere.receiveShadow = true;
 
-    scene.add(spherePoint.sphere);
+    scene.add(sp.sphere);
 
-    return spherePoint; 
+    return sp; 
 }
+
 function compareAngles(a,b) {
     let comparison = 0;
-    if (a.centralAngleRadians() > b.centralAngleRadians()) {
+    if (a.centralAngleRadians(points) > b.centralAngleRadians(points)) {
         comparison = 1;
-    } else if (a.centralAngleRadians() < b.centralAngleRadians()) {
+    } else if (a.centralAngleRadians(points) < b.centralAngleRadians(points)) {
         comparison = -1;
     }
     return comparison;
@@ -202,10 +164,10 @@ function compareAngles(a,b) {
 function iterateUpdate() {
     // find min angle / angles
     // pick random point if one angle, if two, pick to random
-    angleRad = angles.slice();
+    let angleRad = angles.slice();
     angleRad.sort(compareAngles);
 
-    if (angleRad[1].centralAngleRadians() - angleRad[0].centralAngleRadians() < equal_threshold) {
+    if (angleRad[1].centralAngleRadians(points) - angleRad[0].centralAngleRadians(points) < equal_threshold) {
         twoAngleCalculate(angleRad[0], angleRad[1]);
     } else {
         oneAngleCalculate(angleRad[0]);
@@ -214,6 +176,7 @@ function iterateUpdate() {
 
 function twoAngleCalculate(angle1,angle2) {
     // find shared point
+    let commonPoint, unique1, unique2;
     if (angle1.point1 == angle2.point1) {
         commonPoint = angle1.point1;
         unique1 = angle1.point2;
@@ -240,12 +203,16 @@ function twoAngleCalculate(angle1,angle2) {
         "ts": points[commonPoint].theta,
         "ps": points[commonPoint].phi
     };
-    points[unique1].theta += oneAngleDeriv["t1"].evaluate(tp);
-    points[unique1].phi += oneAngleDeriv["p1"].evaluate(tp);
-    points[unique2].theta += oneAngleDeriv["t2"].evaluate(tp);
-    points[unique2].phi += oneAngleDeriv["p2"].evaluate(tp);
-    points[commonPoint].theta += oneAngleDeriv["ts"].evaluate(tp);
-    points[commonPoint].phi += oneAngleDeriv["ps"].evaluate(tp);
+    points[unique1].theta += dt * twoAngleDeriv["t1"].evaluate(tp);
+    points[unique1].phi += dt * twoAngleDeriv["p1"].evaluate(tp);
+    points[unique2].theta += dt * twoAngleDeriv["t2"].evaluate(tp);
+    points[unique2].phi += dt * twoAngleDeriv["p2"].evaluate(tp);
+    points[commonPoint].theta += dt * twoAngleDeriv["ts"].evaluate(tp);
+    points[commonPoint].phi += dt * twoAngleDeriv["ps"].evaluate(tp);
+    points[unique1].updateRender();
+    points[unique2].updateRender();
+    points[commonPoint].updateRender();
+
 }
 
 function oneAngleCalculate(angle) {
@@ -256,8 +223,11 @@ function oneAngleCalculate(angle) {
         "t2": points[angle.point2].theta,
         "p2": points[angle.point2].phi
     };
-    points[angle.point1].theta += oneAngleDeriv["t1"].evaluate(tp);
-    points[angle.point1].phi += oneAngleDeriv["p1"].evaluate(tp);
-    points[angle.point2].theta += oneAngleDeriv["t2"].evaluate(tp);
-    points[angle.point2].phi += oneAngleDeriv["p2"].evaluate(tp);
+    console.log(oneAngleDeriv["t1"].evaluate(tp), oneAngleDeriv["p1"].evaluate(tp), oneAngleDeriv["t2"].evaluate(tp), oneAngleDeriv["p2"].evaluate(tp));
+    points[angle.point1].theta += dt * oneAngleDeriv["t1"].evaluate(tp);
+    points[angle.point1].phi += dt * oneAngleDeriv["p1"].evaluate(tp);
+    points[angle.point2].theta += dt * oneAngleDeriv["t2"].evaluate(tp);
+    points[angle.point2].phi += dt * oneAngleDeriv["p2"].evaluate(tp);
+    points[angle.point1].updateRender();
+    points[angle.point2].updateRender();
 }
