@@ -5,7 +5,7 @@ import SpherePoint from "./SpherePoint.js";
 
 var clock, scene, camera, renderer, controls;
 var stats;
-var num_bodies = 3;
+var num_bodies = 6;
 var grad_updates_per_frame = 1;
 var dt = 5 * Math.pow(10, -3);
 var current_frame = 0;
@@ -120,9 +120,11 @@ function renderFrame(){
     for(let i=0;i<grad_updates_per_frame;i++) {
         iterateUpdate();
     }
+    let mn = 2*Math.PI;
     Object.keys(angles).forEach((angle) => {
-        console.log(angles[angle].centralAngleRadians(points));
-    })
+        mn = Math.min(mn,angles[angle].centralAngleRadians(points));
+    });
+    console.log(mn);
     renderer.render(scene, camera);
     requestAnimationFrame(renderFrame);
     stats.update();
@@ -135,7 +137,7 @@ function onWindowResize() {
 }
 
 function generateParticle() {
-    let radius = 0.1;
+    let radius = 0.05;
 
     //threeJS Section
     let particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshPhongMaterial({color: 0xffffff}));
@@ -226,7 +228,6 @@ function oneAngleCalculate(angle) {
         "t2": points[angle.point2].theta,
         "p2": points[angle.point2].phi
     };
-    console.log(oneAngleDeriv["t1"].evaluate(tp), oneAngleDeriv["p1"].evaluate(tp), oneAngleDeriv["t2"].evaluate(tp), oneAngleDeriv["p2"].evaluate(tp));
     points[angle.point1].theta += dt * oneAngleDeriv["t1"].evaluate(tp);
     points[angle.point1].phi += dt * oneAngleDeriv["p1"].evaluate(tp);
     points[angle.point2].theta += dt * oneAngleDeriv["t2"].evaluate(tp);

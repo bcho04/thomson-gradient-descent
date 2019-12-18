@@ -1,7 +1,7 @@
 class SpherePoint {
     constructor(sphere) {
         this.phi = Math.random()*Math.PI*2;
-        this.theta = Math.random()*Math.PI; // Because phi allows us to access the other hemisphere of the sphere 
+        this.theta = Math.random()*Math.PI*2; // Because phi allows us to access the other hemisphere of the sphere 
         this.sphere = sphere; // Three.js sphere object (not relevant for math)
     }
     
