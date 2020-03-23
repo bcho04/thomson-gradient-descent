@@ -5,7 +5,7 @@ import SpherePoint from "./SpherePoint.js";
 
 var clock, scene, camera, renderer, controls;
 var stats;
-var num_bodies = 6;
+var num_bodies = 12;
 var grad_updates_per_frame = 1;
 var dt = 5 * Math.pow(10, -3);
 var current_frame = 0;
@@ -125,6 +125,9 @@ function renderFrame(){
         mn = Math.min(mn,angles[angle].centralAngleRadians(points));
     });
     console.log(mn);
+    for (let i=1;i<=num_bodies;i++) {
+        console.log('Coodinates: ',points[i.toString()].getCartesian());
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(renderFrame);
     stats.update();
